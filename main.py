@@ -5,6 +5,8 @@
 import discord
 from discord.ext import commands
 from discord import FFmpegPCMAudio
+from discord.utils import get
+
 
 from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup
@@ -29,8 +31,9 @@ intents = discord.Intents.all()
 #intents.presences = False
 #intents.typing = False
 intents.members = True
+intents.reactions = True
         
-kurisu = commands.Bot(command_prefix="$", intents=intents)
+kurisu = commands.Bot(command_prefix="!", intents=intents)
 
 def get_quote():
   response = requests.get("https://zenquotes.io/api/random")
@@ -96,7 +99,7 @@ def getLeagueRoulette():
   return(randomBuild)
 
   
-@kurisu.event
+@kurisu.event #################################################################################
 async def on_ready():
   print(f'{kurisu.user} is connected to the following guilds:')
   for guild in kurisu.guilds:
@@ -107,11 +110,15 @@ async def on_ready():
 
 @kurisu.event
 async def on_member_join(member):
-  await member.create_dm()
+  #await member.create_dm()
   await member.dm_channel.send(f"Hi {member.name}, welcome to {member.guild.name}!")
 
-#await kurisu.process_commands(message)
+@kurisu.listen()
+async def on_message(message):
+  if "cool" in message.content:
+    await message.add_reaction('\U0001F60E')#Unicode to python: '+' becomes '000' and "\" before "U"
 
+#await kurisu.process_commands(message)
 @kurisu.listen()
 async def on_message(message):
   if "kurisu" in message.content:
@@ -140,7 +147,7 @@ async def rolldice(ctx):
   await ctx.send(rollDice())
 
 @kurisu.command(aliases=['leagueroulette', 'lr', 'ff15'], help="Random league build")
-async def leagueRouletteCommand(ctx):
+async def league_roulette(ctx):
   leagueRoulette = getLeagueRoulette()
   await ctx.send(f"Role: {leagueRoulette[0]}\nChampion: {leagueRoulette[1]}\nKeystone: {leagueRoulette[2]}\nSecondary Runes: {leagueRoulette[3]}\nMythic: {leagueRoulette[4]}\nSummoner spell: {leagueRoulette[5]}")
 
@@ -184,6 +191,58 @@ async def leave(ctx):
 async def nhentai(ctx):
   num = random.randint(1, 420000)
   await ctx.send(f"https://nhentai.net/g/{num}/")
+
+
+@kurisu.command(aliases=["addrole"], help="$giverole @user role") #pass_context=True
+#@commands.has_role("Admin")
+async def giverole(ctx, user: discord.Member, role: discord.Role):
+    await user.add_roles(role)
+    await ctx.send(f"Hey {ctx.author.name}, {user.name} has been giving a role called: {role.name}")
+
+@kurisu.command(help="$send_dm @user msg")
+async def send_dm(ctx,member:discord.Member,*,content):
+  await member.send(content)
+
+@kurisu.command(help="testing random stuff")
+async def test(ctx):
+  new_msg = await ctx.channel.send("hello!")
+  await new_msg.add_reaction('\U0001F618')
+
+
+
+
+@kurisu.command(aliases=["rr"], help="reaction roles") ####################
+async def reaction_roles(ctx, role: discord.Role, emoji, *args):
+  new_msg = await ctx.send("{}".format(" ".join(args)))
+  await new_msg.add_reaction(emoji)
+
+  @kurisu.listen() #I WANNA ADD MULTIPLE EMOJIES ON A MESSAGE
+  async def on_reaction_add(reaction, user):
+    await user.add_roles(role)
+    await user.send(f"{user.name} has been giving a role called: {role.name}")
+
+
+@kurisu.command(aliases=["rr2"], help="reaction roles but with 2 emojis")
+async def reaction_roles2(ctx, role_1: discord.Role, role_2: discord.Role, emoji_1, emoji_2, *args):
+  new_msg = await ctx.send("{}".format(" ".join(args)))
+  await new_msg.add_reaction(emoji_1)
+  await new_msg.add_reaction(emoji_2)
+
+  @kurisu.listen()
+  async def on_reaction_add(reaction, user):
+   
+    if reaction.emoji == emoji_1:
+      await user.add_roles(role_1)
+      await user.send(f"{user.name} has been given a role called: {role_1.name}")
+    elif reaction.emoji == emoji_2:
+      await user.add_roles(role_2)
+      await user.send(f"{user.name} has been given a role called: {role_2.name}")
+    else:
+      await user.send(f"{reaction} is not a valid reaction")
+      time.sleep(0.01)
+
+
+
 
 
 kurisu.run(TOKEN)
